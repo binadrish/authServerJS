@@ -70,3 +70,33 @@ export const loginModel = async (email, password) => {
         throw new Error(error.message || "An error occurred during login");
     }
 }
+
+export const registerModel = async (email, password, role) => {
+    try {
+        // Verificar si el usuario ya existe
+        const existingUser = await dbClient.execute({
+            sql: "SELECT * FROM user WHERE email = ?",
+            args: [email],
+        });
+
+        if (existingUser.rows.length > 0) {
+            throw new Error("Email already registered");
+        }
+
+        // Hashear la contraseña
+        const hashedPassword = await hashPassword(password);
+        const createdAt = new Date();
+
+        // Insertar el nuevo usuario en la base de datos
+        const userId = uuidv4(); // Generar un ID único para el usuario
+        await dbClient.execute({
+            sql: "INSERT INTO user (id, email, password_hash, created_at, is_active, role) VALUES (?, ?, ?, ?, ?, ?)",
+            args: [userId, email, hashedPassword, createdAt, true,role],
+        });
+
+        return { message: "User registered successfully", userId };
+    } catch (error) {
+        console.error("Registration error:", error);
+        throw new Error(error.message || "An error occurred during registration");
+    }
+}
